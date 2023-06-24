@@ -2,7 +2,7 @@
 
 ## Explicación sobre implementación
 Para la implementación sobre la iteración de esta tarea se decidió formatear los mensajes para ser representados con un JSON
-que contiene un id el mensaje y el emisor. La razón de realizar esto es para resolver aquellos casos bordes en que se envian mensajes al mismo tiempo con misma
+que contiene un id, el mensaje y el emisor. La razón de realizar esto es para resolver aquellos casos bordes en que se envian mensajes al mismo tiempo con misma
 id, para estos casos lo que se realiza y comparar el emisor de cada mensaje con id repetido y ordenarlos desde menor ip a mayor y luego actualzar aquellos id's repetidos
 Debido a esto el POST request fue modificado de solo mensaje a los 3 atributos descrito anteriormente. Para facilitar su uso se creo un interfaz simple de chat en html
 para mandar estos mensajes de manera rapida y mas comoda (con la desventaja de no ser responsiva ya que es html puro con script pequeño dentro).
@@ -49,12 +49,12 @@ para verificar si fueron conectados.
 
 ## Para uso de chat global (Tarea 3)
 
-# Revisar todos los mensajes
+### Revisar todos los mensajes
     http://localhost:8080/messages
-# Revisar last=XX mensajes
+### Revisar last=XX mensajes
     http://localhost:8080/messages?last=XX
-# Se habilitó una interfaz simple de chat en html(no se actualiza en tiempo real es solo para facilitar el envio de POST request)
+### Se habilitó una interfaz simple de chat en html(no se actualiza en tiempo real es solo para facilitar el envio de POST request)
     http://localhost:8080/chat
 
-# Ejemplo de POST request
+### Ejemplo de POST request
     curl -X POST -H "Content-Type: application/json" -d '{"id":2,"message":"saludos a todos desde el nodo 3", "sender":"172.18.0.4"}' http://localhost:8080/messages
