@@ -1,5 +1,8 @@
 # tarea3-cc5303
 
+### LiveDemo
+https://youtu.be/Tzr5x5XTaZA
+
 ## Explicación sobre implementación
 Para la implementación sobre la iteración de esta tarea se decidió formatear los mensajes para ser representados con un JSON
 que contiene un id, el mensaje y el emisor. La razón de realizar esto es para resolver aquellos casos bordes en que se envian mensajes al mismo tiempo con misma
