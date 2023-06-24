@@ -62,6 +62,22 @@ def connect_node():
             known_nodes.append(f'http://{node_address}:{node_port}')
             requests.post(f'http://{node_address}:8080/connect', json={'node_address': container_ipv4, 'node_port': os.getenv('MYPORT', '8080')})
 
+        # Initialize or update our message list with the known messages from the new node
+        message_response = requests.get(f'http://{node_address}:8080/messages')
+        incoming_messages = message_response.json()
+
+        for new_message in incoming_messages:
+            # Check if the message id already exists in the list
+            existing_message = next((message for message in messages if message['id'] == new_message['id']), None)
+            if existing_message:
+                # If the message content and sender are the same, don't add it
+                if existing_message['message'] == new_message['message'] and existing_message['sender'] == new_message['sender']:
+                    continue
+                else:
+                    # If the id is the same but the message or sender are different, assign a new id
+                    new_message['id'] = max(message['id'] for message in messages) + 1
+            messages.append(new_message)
+
 
     except requests.exceptions.ConnectionError:
         return 'Unable to connect', 400
@@ -86,8 +102,10 @@ def post_message():
     messages.sort(key=lambda x: (x['id'], x['sender']))
     # Broadcast the new message to all known nodes
     for node in known_nodes:
-        node_address = node.split(':')[1].replace('//', '')
-        requests.post(f'http://{node_address}:8080/messages', json=new_message)
+        self_node_url = f"http://{get_container_ipv4_address()}:{os.getenv('MYPORT', '8080')}"
+        if node != self_node_url:
+            node_address = node.split(':')[1].replace('//', '')
+            requests.post(f'http://{node_address}:8080/messages', json=new_message)
     
     return jsonify(new_message), 201
 
