@@ -8,7 +8,8 @@ app = Flask(__name__)
 
 # Lista para almacenar los nodos conocidos
 known_nodes = []
-neighbour_connected = False
+# Lista para almacenar los mensajes
+messages = []
 
 def get_container_ipv4_address():
     # Obtener el nombre de host del contenedor
@@ -21,11 +22,23 @@ def get_container_ipv4_address():
 
 @app.route('/', methods=['GET'])
 def hola():
-    return jsonify({'message': 'Hola Mundo'})
+    return jsonify({'message': 'Hola Mundo pulento'})
 
 @app.route('/nodes', methods=['GET'])
 def get_nodes():
     return jsonify(known_nodes)
+
+@app.route('/messages', methods=['GET'])
+def get_messages():
+    last_n = request.args.get('last')
+    if last_n is None:
+        # If 'last' parameter is not provided, return all messages
+        return jsonify(messages), 200
+    else:
+        # Ensure 'last' parameter is an integer before using it
+        last_n = int(last_n)
+        # Return the last 'n' messages
+        return jsonify(messages[-last_n:]), 200
 
 
 @app.route('/connect', methods=['POST'])
@@ -38,7 +51,6 @@ def connect_node():
     try:
         response = requests.get(f'http://{node_address}:8080/nodes')
         node_list = response.json()
-        self_node_url = f"http://{container_ipv4}:{os.getenv('MYPORT', '8080')}"
 
         for node in node_list:
             if node not in known_nodes:
@@ -55,6 +67,29 @@ def connect_node():
         return 'Unable to connect', 400
 
     return jsonify(known_nodes), 200
+
+@app.route('/messages', methods=['POST'])
+def post_message():
+    new_message = request.get_json()
+    # Check if the message id already exists in the list
+    existing_message = next((message for message in messages if (message['id'] == new_message['id'])), None)
+
+    if existing_message:
+        # If the message content and sender are the same, don't add or broadcast it
+        if existing_message['message'] == new_message['message'] and existing_message['sender'] == new_message['sender']:
+            return jsonify({'error': 'Message already exists'}), 409
+        else:
+            # If the id is the same but the message or sender are different, assign a new id
+            new_message['id'] = max(message['id'] for message in messages) + 1
+    
+    messages.append(new_message)
+    messages.sort(key=lambda x: (x['id'], x['sender']))
+    # Broadcast the new message to all known nodes
+    for node in known_nodes:
+        node_address = node.split(':')[1].replace('//', '')
+        requests.post(f'http://{node_address}:8080/messages', json=new_message)
+    
+    return jsonify(new_message), 201
 
 def send_last_post():
     ip_nodo_vecino = os.getenv('IP', '')
