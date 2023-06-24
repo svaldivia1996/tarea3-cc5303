@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 import requests
 import os
 import socket
@@ -10,6 +10,9 @@ app = Flask(__name__)
 known_nodes = []
 # Lista para almacenar los mensajes
 messages = []
+
+#Ultimo id de mensaje
+last_id = 0
 
 def get_container_ipv4_address():
     # Obtener el nombre de host del contenedor
@@ -39,6 +42,12 @@ def get_messages():
         last_n = int(last_n)
         # Return the last 'n' messages
         return jsonify(messages[-last_n:]), 200
+    
+@app.route('/chat', methods=['GET'])
+def chat():
+    id = last_id
+    sender = known_nodes[0].split(':')[1].replace('//', '')
+    return render_template('chat.html', messages=messages, last_id=id, sender=sender)
 
 
 @app.route('/connect', methods=['POST'])
@@ -76,17 +85,27 @@ def connect_node():
                 else:
                     # If the id is the same but the message or sender are different, assign a new id
                     new_message['id'] = max(message['id'] for message in messages) + 1
+                    # Update the last_id after assigning a new id
+                    global last_id
+                    last_id = new_message['id']  # Update last_id
             messages.append(new_message)
 
 
     except requests.exceptions.ConnectionError:
         return 'Unable to connect', 400
-
     return jsonify(known_nodes), 200
 
 @app.route('/messages', methods=['POST'])
 def post_message():
-    new_message = request.get_json()
+    if request.is_json:
+        new_message = request.get_json()
+    else:
+        new_message = {
+            'sender': request.form.get('sender'),
+            'message': request.form.get('message'),
+            'id': request.form.get('id'),
+        }
+  
     # Check if the message id already exists in the list
     existing_message = next((message for message in messages if (message['id'] == new_message['id'])), None)
 
@@ -107,7 +126,7 @@ def post_message():
             node_address = node.split(':')[1].replace('//', '')
             requests.post(f'http://{node_address}:8080/messages', json=new_message)
     
-    return jsonify(new_message), 201
+    return 
 
 def send_last_post():
     ip_nodo_vecino = os.getenv('IP', '')
